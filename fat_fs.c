@@ -9,9 +9,12 @@
 #define BLOCK_SIZE 2048
 #define FILENAME_LENGTH 100
 #define FILE_NUMBER 64
+#define BLOCK_FREE -2
+#define BLOCK_EOF -1
+#define FS_FILE "/home/dmitriy/projects/fat_fs/fs_file"
 
 typedef struct meta {
-	char not_free;
+	char busy;
 	char is_folder;
 	int start_block;
 	int block_size;
