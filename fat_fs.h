@@ -4,7 +4,7 @@
 #define FILE_NUMBER 64
 #define BLOCK_FREE -2
 #define BLOCK_EOF -1
-#define FS_FILE "/home/dmitriy/projects/fat_fs/fs_file"
+#define FS_FILE "/home/dmitriy/Desktop/ostasks/fat_fs/fs_file"
 #ifndef FAT_FS_H
 #define FAT_FS_H
 struct meta {
@@ -22,3 +22,4 @@ struct fs {
 };
 typedef struct fs fs_t;
 #endif
+//write data writes only one block, need to repair write_precedence_vector 

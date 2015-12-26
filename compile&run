@@ -1,0 +1,2 @@
+gcc -Wall fat_fs.c -o fat_fs.o `pkg-config fuse --cflags --libs`
+./fat_fs.o mnt -f
