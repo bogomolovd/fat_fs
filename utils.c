@@ -4,54 +4,51 @@
 #include <stdlib.h>
 #include "utils.h"
 
-int create_fs(fs_t *fs)
-{
-	int i;
-	char *buffer;
-	FILE *fsfile;
-	fsfile = fopen(FS_FILE, "w+");
-	printf("file opened\n");
-	buffer = (char*) malloc(sizeof(meta_t));
-	memset(buffer, '\0', sizeof(meta_t));
-	printf("memset\n");
-	for(i = 0; i<FILE_NUMBER; i++)
-	{
-		printf("%d\n", i);
-		fwrite(buffer, sizeof(meta_t),1,fsfile); //check
-	}
-	printf("meta written\n");
-	free(buffer);
 
-	buffer = (char*)malloc(sizeof(int));
-	memset(buffer, '\0', sizeof(int));
-	for (i = 0; i < BLOCK_NUMBER; i++) {
-		fwrite(buffer, sizeof(int), 1, fsfile);
-	}
-	printf("vector written\n");
-	free(buffer);
-	buffer = (char*)malloc(BLOCK_SIZE);
-	memset(buffer, '\0', BLOCK_SIZE);
-	for (i = 0; i < BLOCK_NUMBER; i++) {
-		fwrite(buffer, BLOCK_SIZE, 1, fsfile);
-	}
-	printf("data written\n");
-	free(buffer);
-	fclose(fsfile);
-	init(fs);
-	//add_file("/", buf, 0, 1);
-	return 0;
-}
-int init(fs_t *fs)
+int find_free_meta_index(fs_t *fs)
 {
 	int i;
-	for(i=0;i<FILE_NUMBER; i++)
+	for(i = 0; i<FILE_NUMBER; i++)
+		if(!fs->meta[i].busy)
+			return i;
+	return ERR_NFM;
+}
+
+meta_t* get_meta_by_index(fs_t *fs, int index)
+{
+	return &fs->meta[index];
+}
+
+int find_free_block(fs_t *fs)
+{
+	int i;
+	for(i = FIRST_BLOCK; i<BLOCK_NUMBER; i++)
 	{
-		fs->meta[i].busy=0;
-		fs->meta[i].is_folder=0;
-		memset(fs->meta[i].name, '\0', FILENAME_LENGTH);
-		fs->meta[i].start_block = -1;
-		fs->meta[i].block_size = 0;
+		if(fs->next[i]==BLOCK_FREE)
+			return i;
 	}
-	printf("fs initialized\n");
-	return 0;
+	return ERR_NFB;
+}
+
+void write_meta(fs_t *fs, meta_t *meta, int index)
+{
+	FILE *fsfile = fopen(FS_FILE, "r+");
+	fseek(fsfile, index * sizeof(meta_t), SEEK_SET);
+	fwrite(meta, 1, sizeof(meta_t), fsfile);
+	fclose(fsfile);
+}
+
+void write_precedence_vector(fs_t *fs, meta_t *meta)
+{
+	FILE *fsfile = fopen(FS_FILE, "r+");
+	int i = meta->start_block;
+	fseek(fsfile, sizeof(meta_t)*FILE_NUMBER + i*sizeof(int), SEEK_SET);
+	fwrite(&fs->next[i], sizeof(int), 1, fsfile);
+	while (i!=-1)
+	{
+		i = fs->next[i];
+		fseek(fsfile, sizeof(meta_t)*FILE_NUMBER + i*sizeof(int), SEEK_SET);
+		fwrite(&fs->next[i], sizeof(int), 1, fsfile);
+	}
+	fclose(fsfile);
 }

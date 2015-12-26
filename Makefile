@@ -4,4 +4,4 @@ CC=gcc
 CFLAGS=-Wall
 
 all:
-	$(CC) $(CFLAGS) utils.c fat_fs.c -o fat_fs `pkg-config fuse --cflags --libs`
+	$(CC) $(CFLAGS) utils.c fat_fs.c main.c -o fat_fs `pkg-config fuse --cflags --libs`
