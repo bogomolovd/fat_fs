@@ -6,3 +6,6 @@ meta_t* get_meta_by_index(fs_t *fs, int index);
 int find_free_block(fs_t *fs);
 void write_meta(fs_t *fs, meta_t *meta, int index);
 void write_precedence_vector(fs_t *fs, meta_t *meta);
+int get_meta(fs_t *fs, const char *path, meta_t **meta);
+int get_data(fs_t *fs, meta_t *meta, char *buffer);
+int get_index(fs_t *fs, char *data, int size, char *filename);
