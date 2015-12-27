@@ -34,7 +34,7 @@ void write_meta(fs_t *fs, meta_t *meta, int index)
 {
 	FILE *fsfile = fopen(FS_FILE, "r+");
 	fseek(fsfile, index * sizeof(meta_t), SEEK_SET);
-	fwrite(meta, 1, sizeof(meta_t), fsfile);
+	fwrite(meta, sizeof(meta_t),1 , fsfile);
 	fclose(fsfile);
 }
 
@@ -53,25 +53,83 @@ void write_precedence_vector(fs_t *fs, meta_t *meta)
 	fclose(fsfile);
 }
 
-int get_data(fs_t *fs, meta_t *meta, char *buffer)
+int write_data(fs_t *fs, meta_t *meta, void *data, int size)
+{
+	int current_block, written_blocks, bytes_to_write;
+	if(size == 0)
+		return 0;
+	FILE *fsfile = fopen(FS_FILE, "r+");
+	current_block = meta->start_block;
+	bytes_to_write = BLOCK_SIZE;
+	while (bytes_to_write==BLOCK_SIZE)
+	{
+		bytes_to_write = (written_blocks*BLOCK_SIZE + BLOCK_SIZE) > size? (size-BLOCK_SIZE*written_blocks):BLOCK_SIZE;
+		printf("current=%d, bytes to write=%d, filesize=%d\n", current_block, bytes_to_write, meta->file_size);
+		fseek(fsfile,sizeof(meta_t)*FILE_NUMBER+sizeof(int)*BLOCK_NUMBER + current_block*BLOCK_SIZE, SEEK_SET);
+		fwrite(data+written_blocks*BLOCK_SIZE, sizeof(char), bytes_to_write, fsfile);
+		fs->next[current_block] = find_free_block(fs);
+		current_block = fs->next[current_block];
+		written_blocks++;
+	}
+	meta->file_size+=size;
+	write_precedence_vector(fs,meta);
+	fclose(fsfile);
+	return size;
+}
+
+char* get_filename(const char *path) {
+	char *filename;
+	char *slash = NULL;
+	char *ptr = (char*)malloc(strlen(path)*sizeof(char));
+	strcpy(ptr,path);
+	while (slash = *ptr == '/' ? ptr : slash, *ptr++ != '\0');
+	filename = (char*)malloc(sizeof(char) * (ptr - slash));
+	strncpy(filename, slash + 1, ptr - slash);
+	return filename;
+}
+
+char* get_directory(const char *path) {
+	char *directory;
+	char *slash = NULL;
+	char *ptr = (char*)malloc(strlen(path)*sizeof(char));
+	strcpy(ptr,path);
+	while (slash = *ptr == '/' ? ptr : slash, *ptr++ != '\0');
+	int pathlen = strlen(path);
+	int slashlen = strlen(slash);
+	if ((pathlen - slashlen) != 0) {
+		directory = (char*)malloc(sizeof(char) * (pathlen - slashlen));
+		strncpy(directory, path, pathlen - slashlen);
+		directory[pathlen-slashlen] = '\0';
+	}
+	else {
+		directory = (char*)malloc(sizeof(char) * 2);
+		strcpy(directory, "/\0");
+	}
+	return directory;
+}
+
+int get_data(fs_t *fs, meta_t *meta, char **buffer)
 {
 	FILE *fsfile = fopen(FS_FILE, "r");
 	char *data = NULL;
-	int current, gotBlocks, bytes;
+	int current, gotBlocks=0, bytes=0;
 	if(meta==NULL)
 		return -1;
-	data = (char*)malloc(sizeof(char)*meta->file_size);
+	data = (char*)malloc(sizeof(char)*(meta->file_size));
 	current = meta->start_block;
 	while (current!=-1)
 	{
 		bytes = (meta->file_size-gotBlocks*BLOCK_SIZE)>BLOCK_SIZE?BLOCK_SIZE:(meta->file_size-gotBlocks*BLOCK_SIZE);
+		//printf("before fseek current=%d, bytes to read=%d, filesize=%d\n", current, bytes, meta->file_size);
 		fseek(fsfile, sizeof(meta_t)*FILE_NUMBER+BLOCK_NUMBER*sizeof(int)+current*BLOCK_SIZE,SEEK_SET);
-		fread(data+gotBlocks*BLOCK_SIZE, 1, bytes, fsfile);
+		//printf("after fseek\n");
+		fread(data+gotBlocks*BLOCK_SIZE, sizeof(char), bytes, fsfile);
 		gotBlocks++;
 		current = fs->next[current];
+		//printf("next current=%d\n", current);
 	}
 	fclose(fsfile);
-	buffer = data;
+	*buffer = data;
 	return meta->file_size;
 }
 
@@ -105,7 +163,7 @@ int get_meta(fs_t *fs, const char *path, meta_t **meta)
 	{
 		if(temp_meta->file_size==0)
 			return -1;
-		size = get_data(fs,temp_meta, data);
+		size = get_data(fs,temp_meta, &data);
 		temp_meta = NULL;
 		start = ptr;
 		while ((*ptr++ != '/')&&((ptr-path)<strlen(path)));

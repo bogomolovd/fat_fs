@@ -77,3 +77,25 @@ int create_empty_file(fs_t *fs, char *name, char is_folder)
 	write_precedence_vector(fs,meta);
 	return meta_index;
 }
+
+int create_file(fs_t *fs, const char *path, int type)
+{
+	printf("in create_file, path=%s\n", path );
+	meta_t *dir_meta;
+	char *dir_data, *new_dir_data;
+	char *path_to_dir = get_directory(path);
+	char *filename = get_filename(path);
+	int dir_index = get_meta(fs,path_to_dir,&dir_meta);
+	int data_size = get_data(fs, dir_meta, &dir_data);
+	new_dir_data = (char*)malloc(data_size+sizeof(int));
+	memcpy(new_dir_data, dir_data, data_size);
+	int created_file_index = create_empty_file(fs, filename, type);
+	new_dir_data[data_size/sizeof(int)] = created_file_index;
+	write_data(fs,dir_meta, new_dir_data, data_size + sizeof(int));
+	dir_meta->file_size = data_size + sizeof(int);
+	write_meta(fs,dir_meta, dir_index);
+	free(dir_data);
+	free(filename);
+	free(path_to_dir);
+	return 0;
+}

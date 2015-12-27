@@ -37,3 +37,4 @@ typedef struct fs fs_t;
 int create_fs(fs_t *fs);
 int init_fs(fs_t *fs);
 int create_empty_file(fs_t *fs, char *name, char is_folder);
+int create_file(fs_t *fs, const char *path, int type);
