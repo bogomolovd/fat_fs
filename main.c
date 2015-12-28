@@ -16,7 +16,9 @@ static int fat_getattr(const char *path, struct stat *stbuf)
         int res = 0;
         //char *data;
         meta_t *meta=NULL;
+		//printf("getattr before get_meta\n");
         int index = get_meta(&fs,path,&meta);
+		//printf("getattr after get_meta\n");
         if(index==-1)
           return -ENOENT;
         memset(stbuf, 0, sizeof(struct stat));
@@ -35,6 +37,7 @@ static int fat_getattr(const char *path, struct stat *stbuf)
 
 static int fat_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t offset, struct fuse_file_info *fi)
 {
+      printf("readdir path = %s, offset=%d\n", path, offset);
       int i = 0;
     	int index = 0;
     	(void) offset;
@@ -50,6 +53,7 @@ static int fat_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t
     	if (index == -1)
     		return -ENOENT;
     	size = get_data(&fs,meta, &data);
+		//printf("meta ptr=%d", (int)meta);
     	if (meta->file_size == 0)
     		return 0;
     	for (i = 0; i < size / sizeof(int); i++)
@@ -59,6 +63,7 @@ static int fat_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t
 
 static int fat_open(const char *path, struct fuse_file_info *fi)
 {
+      printf("open path = %s\n", path);
       meta_t *meta;
     	int index = 0;
     	index = get_meta(&fs,path, &meta);
@@ -69,6 +74,7 @@ static int fat_open(const char *path, struct fuse_file_info *fi)
 
 static int fat_opendir(const char *path, struct fuse_file_info *fi)
 {
+      printf("opendir path = %s\n", path);
     	meta_t *meta;
     	int index = 0;
     	index = get_meta(&fs,path, &meta);
@@ -79,6 +85,7 @@ static int fat_opendir(const char *path, struct fuse_file_info *fi)
 
 static int fat_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
 {
+      printf("read path = %s, size=%d, offset=%d\n", path, size, offset);
       size_t len;
       char *data;
     	meta_t *meta;
@@ -102,6 +109,7 @@ static int fat_read(const char *path, char *buf, size_t size, off_t offset,struc
 
 static int fat_mkdir(const char *path, mode_t mode)
 {
+  printf("mkdir path = %s\n", path);
 	int res;
 	res = create_file(&fs,path, 1);
 	if (res != 0)
@@ -109,11 +117,27 @@ static int fat_mkdir(const char *path, mode_t mode)
 	return 0;
 }
 
-static int fat_createfile (const char *path, mode_t mode, struct fuse_file_info *fi) {
-	/*int res;
-	res = mkfile(path, 0);
+static int fat_create (const char *path, mode_t mode, struct fuse_file_info *fi) {
+  printf("create path = %s\n", path);
+	int res;
+	res = create_file(&fs,path, 0);
 	if (res != 0)
-		return -1;*/
+		return -1;
+	return 0;
+}
+
+static int fat_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+  printf("write path = %s, size=%d, offset=%d\n", path, size, offset);
+	meta_t *meta;
+	int res;
+	int index = get_meta(&fs,path, &meta);
+	if (index == -1)
+		return -ENOENT;
+	//printf("size = %d offset = %d \n", size, offset);
+	res = write_data(&fs, meta , buf, size);
+	write_meta(&fs,meta, index);
+	if (res != 0)
+		return -1;
 	return 0;
 }
 
@@ -124,7 +148,8 @@ static struct fuse_operations fat_oper = {
         .read           = fat_read,
         .opendir        = fat_opendir,
         .mkdir          = fat_mkdir,
-        .create         = fat_createfile,
+        .create         = fat_create,
+        .write          = fat_write,
 };
 int main(int argc, char *argv[])
 {

@@ -10,7 +10,7 @@
 #define ERR_NFM 1000
 #define ERR_NFB 1001
 
-#define FS_FILE "/home/dmitriy/Projects/fat_fs/fs_file"
+#define FS_FILE "/home/dmitriy/Projects/fat_fs_untracked/fs_file"
 
 #ifndef FAT_FS_H
 #define FAT_FS_H
