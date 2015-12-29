@@ -86,25 +86,27 @@ static int fat_opendir(const char *path, struct fuse_file_info *fi)
 static int fat_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
 {
       printf("read path = %s, size=%d, offset=%d\n", path, size, offset);
-      size_t len;
       char *data;
     	meta_t *meta;
     	get_meta(&fs,path, &meta);
     	if (meta == NULL)
     		return -ENOENT;
 
-    	len = get_data(&fs,meta, &data);
+    	int len = get_data_with_offset(&fs,meta, &data,size,offset);
+		printf("len=%d\n",len);
 
     	if (len < 0)
     		return -ENOENT;
-    	if (offset < len) {
+		memcpy(buf, data, len);
+		printf("%s", buf);
+    	/*if (offset < len) {
     		if (offset + size > len)
     			size = len - offset;
-    		memcpy(buf, data + offset, size);
+    		
     	}
     	else
-    		size = 0;
-      return size;
+    		size = 0;*/
+      return len;
 }
 
 static int fat_mkdir(const char *path, mode_t mode)
@@ -134,11 +136,9 @@ static int fat_write(const char *path, const char *buf, size_t size, off_t offse
 	if (index == -1)
 		return -ENOENT;
 	//printf("size = %d offset = %d \n", size, offset);
-	res = write_data(&fs, meta , buf, size);
+	res = write_data_with_offset(&fs, meta , buf, size, offset);
 	write_meta(&fs,meta, index);
-	if (res != 0)
-		return -1;
-	return 0;
+	return res;
 }
 
 static struct fuse_operations fat_oper = {

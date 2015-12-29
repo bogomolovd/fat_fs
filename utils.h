@@ -12,3 +12,5 @@ int get_index(fs_t *fs, char *data, int size, char *filename);
 char* get_directory(const char *path);
 char* get_filename(const char *path);
 int write_data(fs_t *fs, meta_t *meta, void *data, int size);
+int write_data_with_offset(fs_t *fs, meta_t *meta,const char *data, int size,int offset);
+int get_data_with_offset(fs_t *fs, meta_t *meta,char **buffer, int size,int offset);
